@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Juego de Ordenamiento</title>
   <style>
     body {
@@ -26,7 +26,7 @@
       text-align: center;
     }
 
-    #steps-container {
+    .dropzone-container {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -34,25 +34,37 @@
       width: 100%;
       max-width: 400px;
       margin-top: 20px;
-      position: relative;
-      z-index: 1;
+    }
+
+    .dropzone {
+      width: 100%;
+      max-width: 250px;
+      height: 50px;
+      background-color: #D9D9D9;
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #999;
     }
 
     .step {
       width: 100%;
       max-width: 250px;
       height: 50px;
-      background-color: #FFBC00;
+      background-color: #FCD307;
+      color: #000;
+      font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: grab;
       border-radius: 25px;
       user-select: none;
-      color: #000000;
-      border: 2px solid #ffffff;
+      cursor: grab;
+      border: 1px solid #000000;
       animation: float 3s ease-in-out infinite;
       transition: transform 0.2s ease, opacity 0.2s ease;
+      position: relative;
     }
 
     .dragging {
@@ -61,18 +73,10 @@
       cursor: grabbing !important;
     }
 
-    .step p {
-      margin: 0;
-      font-size: 16px;
-    }
-
     .verify-container {
-      position: relative;
-      width: 100%;
+      margin-top: 30px;
       display: flex;
       justify-content: center;
-      margin-top: 30px;
-      z-index: 2;
     }
 
     #verify {
@@ -82,7 +86,6 @@
       background-color: #07fc44;
       border: 2px solid #ffffff;
       border-radius: 25px;
-      position: relative;
     }
 
     #message {
@@ -90,6 +93,20 @@
       font-size: 20px;
       text-align: center;
     }
+.options-container {
+  border: 2px solid #0A1D32;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 40px;
+  max-width: 800px;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
 
     canvas {
       position: fixed;
@@ -103,28 +120,37 @@
   </style>
 </head>
 <body>
-    
+
   <h1 id="game-title"></h1>
   <p>Arrastra y suelta los pasos en el orden correcto.</p>
-    <div class="verify-container">
+
+  <div class="verify-container">
     <button id="verify">Verificar</button>
-    
   </div>
-<div id="message"></div>
-  <div id="steps-container"></div>
 
+  <div id="message"></div>
 
-  
+  <!-- Zonas vacías para colocar los pasos -->
+  <div class="dropzone-container" id="dropzones">
+    <div class="dropzone"></div>
+    <div class="dropzone"></div>
+    <div class="dropzone"></div>
+    <div class="dropzone"></div>
+  </div>
 
-  
+  <!-- Opciones que se arrastran -->
+  <div class="options-container" id="steps-container"></div>
+
   <canvas id="confetti-canvas"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script>
     const stepsContainer = document.getElementById('steps-container');
+    const dropzones = document.querySelectorAll('.dropzone');
     const message = document.getElementById('message');
     const verifyButton = document.getElementById('verify');
     const gameTitle = document.getElementById('game-title');
+
     let draggedItem = null;
     let offsetX, offsetY;
     let correctOrder = [];
@@ -154,26 +180,26 @@
       shuffled.forEach((step) => {
         const stepElement = document.createElement('div');
         stepElement.className = 'step';
+        stepElement.textContent = step.text;
         stepElement.setAttribute('draggable', 'true');
-        stepElement.innerHTML = `<p>${step.text}</p>`;
-        stepsContainer.appendChild(stepElement);
 
         stepElement.addEventListener('dragstart', () => {
           draggedItem = stepElement;
         });
 
-        stepElement.addEventListener('dragover', (e) => {
+        stepsContainer.appendChild(stepElement);
+      });
+
+      dropzones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
           e.preventDefault();
         });
 
-        stepElement.addEventListener('drop', () => {
-          if (draggedItem && draggedItem !== stepElement) {
-            const draggedIndex = Array.from(stepsContainer.children).indexOf(draggedItem);
-            const targetIndex = Array.from(stepsContainer.children).indexOf(stepElement);
-            if (draggedIndex < targetIndex) {
-              stepsContainer.insertBefore(draggedItem, stepElement.nextSibling);
-            } else {
-              stepsContainer.insertBefore(draggedItem, stepElement);
+        zone.addEventListener('drop', () => {
+          if (draggedItem) {
+            if (zone.children.length === 0) {
+              zone.appendChild(draggedItem);
+              draggedItem = null;
             }
           }
         });
@@ -181,9 +207,8 @@
     }
 
     verifyButton.addEventListener('click', () => {
-      const currentSteps = Array.from(document.querySelectorAll('.step'));
-      const currentOrder = currentSteps.map(step => step.querySelector('p').textContent);
-      const isCorrect = currentOrder.every((step, index) => step === correctOrder[index]);
+      const currentOrder = Array.from(dropzones).map(zone => zone.textContent.trim());
+      const isCorrect = currentOrder.every((text, index) => text === correctOrder[index]);
       if (isCorrect) {
         message.textContent = '¡Felicidades! Has ordenado los pasos correctamente.';
         message.style.color = 'green';
@@ -199,39 +224,6 @@
       const myConfetti = confetti.create(canvas, { resize: true, useWorker: true });
       myConfetti({ particleCount: 100, spread: 70, origin: { y: 0.2 } });
     }
-
-    // Movimiento libre creativo sin afectar botón
-    document.addEventListener('mousedown', (e) => {
-      if (e.target.classList.contains('step')) {
-        draggedItem = e.target;
-        draggedItem.classList.add('dragging');
-        const rect = draggedItem.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-
-        draggedItem.style.position = 'absolute';
-        draggedItem.style.zIndex = 1000;
-        draggedItem.style.left = `${e.pageX - offsetX}px`;
-        draggedItem.style.top = `${e.pageY - offsetY}px`;
-
-        document.body.appendChild(draggedItem);
-        e.preventDefault();
-      }
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (draggedItem) {
-        draggedItem.style.left = `${e.pageX - offsetX}px`;
-        draggedItem.style.top = `${e.pageY - offsetY}px`;
-      }
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (draggedItem) {
-        draggedItem.classList.remove('dragging');
-        draggedItem = null;
-      }
-    });
 
     loadConfig();
   </script>
