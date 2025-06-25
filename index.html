@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Ordenamiento</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #FFFFFF;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #steps-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 20px;
+    }
+
+    .step {
+      width: 100%;
+      max-width: 250px;
+      height: 50px;
+      background-color: #FFBC00;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: move;
+      border-radius: 25px;
+      user-select: none;
+      color: #000000;
+      border: 2px solid #ffffff;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    #verify {
+      margin-top: 30px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #07fc44;
+      border: 2px solid #ffffff;
+      border-radius: 25px;
+    }
+
+    #message {
+      margin: 20px;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="game-title"></h1>
+  <p>Arrastra y suelta los pasos en el orden correcto.</p>
+  <div id="steps-container"></div>
+  <button id="verify">Verificar</button>
+  <div id="message"></div>
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <script>
+    const stepsContainer = document.getElementById('steps-container');
+    const message = document.getElementById('message');
+    const verifyButton = document.getElementById('verify');
+    const gameTitle = document.getElementById('game-title');
+    let draggedItem = null;
+    let offsetX, offsetY;
+    let correctOrder = [];
+    let steps = [];
+
+    function loadConfig() {
+      const savedConfig = localStorage.getItem('gameConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        gameTitle.textContent = config.title || 'Ordena correctamente para ganar';
+        steps = config.steps || [
+          { text: 'Hervir agua' },
+          { text: 'Añadir café al filtro' },
+          { text: 'Verter agua caliente' },
+          { text: 'Servir el café' }
+        ];
+        correctOrder = steps.map(step => step.text);
+        renderSteps();
+      }
+    }
+
+    function renderSteps() {
+      stepsContainer.innerHTML = '';
+      const shuffled = [...steps];
+      shuffled.sort(() => Math.random() - 0.5);
+
+      shuffled.forEach((step, index) => {
+        const stepElement = document.createElement('div');
+        stepElement.className = 'step';
+        stepElement.setAttribute('draggable', 'true');
+        stepElement.innerHTML = `<p>${step.text}</p>`;
+        stepsContainer.appendChild(stepElement);
+
+        stepElement.addEventListener('dragstart', () => {
+          draggedItem = stepElement;
+        });
+
+        stepElement.addEventListener('dragover', (e) => {
+          e.preventDefault();
+        });
+
+        stepElement.addEventListener('drop', () => {
+          if (draggedItem && draggedItem !== stepElement) {
+            const draggedIndex = Array.from(stepsContainer.children).indexOf(draggedItem);
+            const targetIndex = Array.from(stepsContainer.children).indexOf(stepElement);
+            if (draggedIndex < targetIndex) {
+              stepsContainer.insertBefore(draggedItem, stepElement.nextSibling);
+            } else {
+              stepsContainer.insertBefore(draggedItem, stepElement);
+            }
+          }
+        });
+      });
+    }
+
+    verifyButton.addEventListener('click', () => {
+      const currentSteps = Array.from(document.querySelectorAll('.step'));
+      const currentOrder = currentSteps.map(step => step.querySelector('p').textContent);
+      const isCorrect = currentOrder.every((step, index) => step === correctOrder[index]);
+      if (isCorrect) {
+        message.textContent = '¡Felicidades! Has ordenado los pasos correctamente.';
+        message.style.color = 'green';
+        celebrate();
+      } else {
+        message.textContent = 'Intenta otra vez.';
+        message.style.color = 'red';
+      }
+    });
+
+    function celebrate() {
+      const canvas = document.getElementById('confetti-canvas');
+      const myConfetti = confetti.create(canvas, { resize: true, useWorker: true });
+      myConfetti({ particleCount: 100, spread: 70, origin: { y: 0.2 } });
+    }
+
+    loadConfig();
+  </script>
+</body>
+</html>
